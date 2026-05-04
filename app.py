@@ -2,15 +2,21 @@
 ## Execute as células na ordem indicada
 
 # %% 
-# Célula 1 - Conexão com o banco
+# Célula 1 - Conexão com o banco MySQL via XAMPP
 # Execute esta célula primeiro
 
-import sqlite3
+import mysql.connector
 
-con = sqlite3.connect("data/processed/travel.sqlite")
+
+con = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="*********",
+    database="classicmodels"
+)
 cursor = con.cursor()
 
-print("Conexão com o banco realizada!")
+print("Conexão com o banco MySQL realizada!")
 
 # %% 
 # Célula 2 - Visualizar amostra da tabela tickets
@@ -26,23 +32,26 @@ for linha in dados:
 # %% 
 # Célula 3 - Criar VIEW gerencial
 # Execute depois da célula 1
-# (precisa da conexão com o banco)
 
 cursor.execute("""
-CREATE VIEW IF NOT EXISTS vw_painel_vendas_gerencial AS
-SELECT
-    strftime('%Y-%m', f.scheduled_departure) AS mes,
-    COUNT(DISTINCT t.ticket_no) AS total_passagens,
-    COUNT(tf.flight_id) AS total_voos_reservados,
-    SUM(tf.amount) AS receita_total,
-    AVG(tf.amount) AS ticket_medio
-FROM tickets t
-JOIN ticket_flights tf 
-    ON t.ticket_no = tf.ticket_no
-JOIN flights f 
-    ON tf.flight_id = f.flight_id
-GROUP BY mes
-ORDER BY mes
+CREATE OR REPLACE VIEW vw_painel_vendas_gerencial AS
+SELECT 
+    DATE_FORMAT(o.orderDate, '%Y-%m') AS mes_venda,
+    pl.productLine AS linha_produto,
+    COUNT(DISTINCT o.orderNumber) AS total_pedidos,
+    SUM(od.quantityOrdered * od.priceEach) AS receita_total,
+    ROUND(SUM(od.quantityOrdered * od.priceEach) / COUNT(DISTINCT o.orderNumber), 2) AS ticket_medio
+FROM orders o
+JOIN orderdetails od ON o.orderNumber = od.orderNumber
+JOIN products p ON od.productCode = p.productCode
+JOIN productlines pl ON p.productLine = pl.productLine
+WHERE o.status != 'Cancelled'
+GROUP BY
+    DATE_FORMAT(o.orderDate, '%Y-%m'), 
+    pl.productLine
+ORDER BY
+    mes_venda DESC,
+    receita_total DESC;
 """)
 
 con.commit()

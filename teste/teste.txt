@@ -1,0 +1,68 @@
+CREATE OR REPLACE VIEW vw_painel_vendas_gerencial AS
+SELECT 
+    DATE_FORMAT(o.orderDate, '%Y-%m') AS mes_venda,
+    pl.productLine AS linha_produto,
+    COUNT(DISTINCT o.orderNumber) AS total_pedidos,
+    SUM(od.quantityOrdered * od.priceEach) AS receita_total,
+    ROUND(SUM(od.quantityOrdered * od.priceEach) / COUNT(DISTINCT o.orderNumber), 2) AS ticket_medio
+FROM orders o
+JOIN orderdetails od ON o.orderNumber = od.orderNumber
+JOIN products p ON od.productCode = p.productCode
+JOIN productlines pl ON p.productLine = pl.productLine
+WHERE o.status != 'Cancelled'
+GROUP BY 
+    DATE_FORMAT(o.orderDate, '%Y-%m'), 
+    pl.productLine
+ORDER BY 
+    mes_venda DESC, 
+    receita_total DESC;
+
+
+
+#######
+
+
+Documentação Técnica:
+
+Objetivo: Fornecer indicadores de desempenho consolidados para a diretoria, permitindo a análise de tendências de receita e volume de pedidos ao longo do tempo.
+
+Lógica Implementada: * Utiliza a função DATE_FORMAT para extrair o ano e o mês da data do pedido (orderDate), criando a dimensão temporal.
+
+As métricas calculadas incluem: volume absoluto de pedidos (COUNT(DISTINCT)), faturamento bruto (SUM(quantidade * preco)) e ticket médio por pedido (ROUND(receita / total_pedidos)).
+
+O filtro WHERE o.status != 'Cancelled' garante que a receita calculada não inclua pedidos que não foram efetivados.
+
+
+
+######
+Segunda VIEW
+
+CREATE OR REPLACE VIEW vw_painel_vendas_detalhadas AS
+SELECT 
+    o.orderDate AS data_venda,
+    o.orderNumber AS numero_pedido,
+    c.customerName AS nome_cliente,
+    p.productName AS nome_produto,
+    p.productLine AS linha_produto,
+    od.quantityOrdered AS quantidade,
+    od.priceEach AS valor_unitario,
+    (od.quantityOrdered * od.priceEach) AS valor_total_item,
+    o.status AS status_pedido
+FROM orders o
+JOIN customers c ON o.customerNumber = c.customerNumber
+JOIN orderdetails od ON o.orderNumber = od.orderNumber
+JOIN products p ON od.productCode = p.productCode;
+
+
+Documentação Técnica:
+
+
+Objetivo: Permitir que analistas operacionais inspecionem dados transacionais diários, cruzando informações pontuais sobre clientes, produtos específicos e status de entrega.
+
+Lógica Implementada:
+
+A consulta faz o JOIN direto entre as tabelas primárias do fluxo de vendas (orders, customers, orderdetails, products) para planificar o modelo relacional em uma única tabela virtual.
+
+Um campo calculado (valor_total_item) foi inserido multiplicando a quantidade pelo preço unitário no momento da venda, eliminando a necessidade de cálculo na camada de aplicação.
+
+Expõe a coluna status_pedido para acompanhamento do ciclo de vida da transação (Shipped, Cancelled, In Process, etc.).
