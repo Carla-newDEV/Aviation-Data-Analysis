@@ -45,6 +45,8 @@ BEGIN
       CONCAT('Attempt to delete payment customerNumber: ', OLD.customerNumber),
       CONCAT('DELETE FROM payment WHERE customerNumber = ', OLD.customerNumber)
   );
+    SIGNAL SQLSTATE '45000'
+  SET MESSAGE_TEXT = 'Exclusion not permitted'
 
 END$$
 
@@ -68,6 +70,8 @@ BEGIN
       CONCAT('Attempt to delete order orderNumber: ', orderNumber),
       CONCAT('DELETE FROM order WHERE orderNumber = ', orderNumber)
   );
+    SIGNAL SQLSTATE '45000'
+  SET MESSAGE_TEXT = 'Exclusion not permitted'
 
 END$$
 
@@ -91,5 +95,7 @@ BEGIN
       CONCAT('Attempt to delete orderdetails orderNumber: ', orderNumber),
       CONCAT('DELETE FROM orderdetails WHERE orderNumber = ', orderNumber)
   );
+    SIGNAL SQLSTATE '45000'
+  SET MESSAGE_TEXT = 'Exclusion not permitted'
 
 END$$
